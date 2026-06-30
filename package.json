@@ -1,0 +1,16 @@
+{
+  "name": "headline-lab",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Codified YouTube-headline workflow: decompose viral titles into typed components, generate new ones across prompt strategies (zero-/few-/multi-/dynamic-few-shot), and score which strategy wins — grounded in real channel data.",
+  "scripts": {
+    "decompose": "bun run src/decompose.js",
+    "lab": "bun run src/lab.js",
+    "embed-check": "bun run src/embed.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.105.0",
+    "@huggingface/transformers": "^4.2.0"
+  }
+}

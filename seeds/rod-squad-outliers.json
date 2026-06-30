@@ -1,0 +1,22 @@
+{
+  "_comment": "Real outlier headlines from Neal's channel 'Rod Squad' (UC3cSU4bMiH_qv-oCpQdhILg, 85.2K subs), pulled via vidIQ outliers/popular. breakoutScore = how far the video beat the channel's own average. These are the GROUND TRUTH the lab learns the winning grammar from.",
+  "channelId": "UC3cSU4bMiH_qv-oCpQdhILg",
+  "channelTitle": "Rod Squad",
+  "subscribers": 85200,
+  "headlines": [
+    { "title": "SBA $150K Grant Deadline in Days! Do THIS to Qualify!", "views": 15118, "breakoutScore": 30.24 },
+    { "title": "$45,000, $1,200 Grants for EVERYONE in 12 Minutes!", "views": 23146, "breakoutScore": 21.25 },
+    { "title": "$25,000 GRANTS to Start YOUR Small Business in 5 Minutes!", "views": 21293, "breakoutScore": 14.16 },
+    { "title": "$3 Million Personal Grants! NO CAP! PROOF!", "views": 6733, "breakoutScore": 12.68 },
+    { "title": "NEW SBA $150,000 Grant for 2025! Do this to Qualify!", "views": 5933, "breakoutScore": 11.41 },
+    { "title": "SBA Nationwide $15K Grants! Startups CALL to Apply Now!", "views": 12446, "breakoutScore": 8.4 },
+    { "title": "Hurry! $25,000 Grants for EVERYONE - 20 Minutes - Guaranteed Money FAST!", "views": 9625, "breakoutScore": 6.74 },
+    { "title": "$10,000 GRANTS for FELONS!", "views": 10327, "breakoutScore": 6.65 },
+    { "title": "$3,200 A Week Entry Level Remote Jobs! FREE Resume Template", "views": 11584, "breakoutScore": 6.49 },
+    { "title": "20 Companies Hiring TOP PAID Work From Home Jobs: NO Experience", "views": 28731, "breakoutScore": 6.49 },
+    { "title": "$200,000 Grants for EVERYONE in 12 Hours!", "views": null, "breakoutScore": null },
+    { "title": "HURRY! $150,000 STARTUP Small Business GRANTS in 2 Hours!", "views": null, "breakoutScore": null },
+    { "title": "$100,000 Grants for EVERYONE in 3 Hours!", "views": null, "breakoutScore": null },
+    { "title": "$10,000 EIDL Grant Deposited in 21 Days! How to Apply for FREE Money!", "views": null, "breakoutScore": null }
+  ]
+}
