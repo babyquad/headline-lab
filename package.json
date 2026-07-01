@@ -7,10 +7,13 @@
   "scripts": {
     "decompose": "bun run src/decompose.js",
     "lab": "bun run src/lab.js",
-    "embed-check": "bun run src/embed.js"
+    "embed-check": "bun run src/embed.js",
+    "web": "bun run web/server.js",
+    "dev": "bun run --watch web/server.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
-    "@huggingface/transformers": "^4.2.0"
+    "@huggingface/transformers": "^4.2.0",
+    "hono": "^4.12.23"
   }
 }

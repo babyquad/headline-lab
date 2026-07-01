@@ -1,17 +1,9 @@
-// src/lab.js — Headline Lab: the strategy bake-off.
+// src/lab.js — Headline Lab core + CLI.
 //
-// Codifies Neal's workflow end-to-end:
-//   1. Learn the winning grammar from real outlier headlines (decompose + profile)
-//   2. Generate candidates for a new topic across FOUR prompt strategies
-//        zero-shot · few-shot · multi-shot · dynamic-few-shot
-//   3. Score every candidate with the CTR-proxy and report WHICH STRATEGY WINS
-//
-// This is prompt engineering + eval in one runnable artifact, grounded in real
-// data. Uses Anthropic when ANTHROPIC_API_KEY is set (real generation); otherwise
-// falls back to template assembly so the pipeline still runs and is testable.
-//
-//   bun run lab "new SBA grant for veterans"
-//   bun run lab "remote jobs no experience" --amount "$3,200 a week"
+// Codifies the workflow: learn the winning grammar from real outliers →
+// generate candidates for a topic across FOUR prompt strategies (zero / few /
+// multi / dynamic-few-shot) → score every candidate → report which wins.
+// `runLab()` is the shared engine used by both the CLI and the web demo.
 
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -21,17 +13,15 @@ import { mostSimilar, embedMode } from "./embed.js";
 import { llmEnabled, generateWithLLM } from "./llm.js";
 
 const seeds = JSON.parse(readFileSync(join(import.meta.dir, "../seeds/rod-squad-outliers.json"), "utf-8"));
-const SEED_TITLES = seeds.headlines.map((h) => h.title);
-
-const argv = process.argv.slice(2);
-const topic = argv.find((a) => !a.startsWith("--")) || "new SBA small-business grant";
-const amountFlag = (() => { const i = argv.indexOf("--amount"); return i >= 0 ? argv[i + 1] : null; })();
+export const SEED_TITLES = seeds.headlines.map((h) => h.title);
+export const SEEDS_META = seeds;
 
 const N = 5;
-const GRAMMAR = "Favor: a specific dollar AMOUNT, an AUDIENCE (e.g. for EVERYONE / Startups), a SPEED (in X minutes/hours), URGENCY, and a clear CTA. Keep it ~35-65 characters.";
+const GRAMMAR =
+  "Favor: a specific dollar AMOUNT, an AUDIENCE (e.g. for EVERYONE / Startups), a SPEED (in X minutes/hours), URGENCY, and a clear CTA. Keep it ~35-65 characters.";
 
-// ---- keyless fallback: assemble titles from the slot grammar of an example pool ----
-function templateGenerate(pool, n) {
+// Keyless fallback: assemble titles from the slot grammar of an example pool.
+function templateGenerate(pool, topic, amount, n) {
   const slots = { AMOUNT: [], AUDIENCE: [], SPEED: [], CTA: [], URGENCY: [], PROOF: [], AUTHORITY: [] };
   for (const t of pool) for (const c of decompose(t).components) if (slots[c.type]) slots[c.type].push(c.span);
   const def = {
@@ -42,63 +32,71 @@ function templateGenerate(pool, n) {
   const uniq = (k) => { const a = [...new Set(slots[k])]; return a.length ? a : def[k]; };
   const pick = (k, i) => { const a = uniq(k); return a[i % a.length]; };
   const core = topic.replace(/\b\w/g, (m) => m.toUpperCase());
-  const A = amountFlag ? () => amountFlag : (i) => pick("AMOUNT", i);
+  // Don't tack on an AUDIENCE the topic already implies (avoids "...Small Business Small Business").
+  const aud = (i) => (/\b(everyone|business|startup|veteran|felon|student)\b/i.test(topic) ? "" : ` ${pick("AUDIENCE", i)}`);
+  const A = amount ? () => amount : (i) => pick("AMOUNT", i);
   const templates = [
-    (i) => `${pick("URGENCY", i)} ${A(i)} ${core} ${pick("AUDIENCE", i)} ${pick("SPEED", i)}!`,
-    (i) => `${A(i)} ${core} ${pick("AUDIENCE", i)} ${pick("SPEED", i)}! ${pick("CTA", i)}`,
+    (i) => `${pick("URGENCY", i)} ${A(i)} ${core}${aud(i)} ${pick("SPEED", i)}!`,
+    (i) => `${A(i)} ${core}${aud(i)} ${pick("SPEED", i)}! ${pick("CTA", i)}`,
     (i) => `NEW ${pick("AUTHORITY", i)} ${A(i)} ${core}! ${pick("CTA", i)}`,
-    (i) => `${A(i)} ${core} ${pick("AUDIENCE", i)}! ${pick("PROOF", i)}`,
+    (i) => `${A(i)} ${core}${aud(i)}! ${pick("PROOF", i)}`,
     (i) => `${pick("AUTHORITY", i)} ${A(i)} ${core} ${pick("SPEED", i)}! ${pick("CTA", i)}`,
   ];
   return templates.slice(0, n).map((f, i) => f(i).replace(/\s+/g, " ").trim());
 }
 
-async function strategies() {
+async function buildStrategies(topic) {
   const dyn = (await mostSimilar(topic, SEED_TITLES, 4)).map((r) => r.text);
   return [
-    { name: "zero-shot", examples: [], note: "no examples — relies on the grammar rules only" },
+    { name: "zero-shot", examples: [], note: "no examples — grammar rules only" },
     { name: "few-shot", examples: SEED_TITLES.slice(0, 3), note: "3 fixed examples" },
     { name: "multi-shot", examples: SEED_TITLES, note: `${SEED_TITLES.length} examples` },
-    { name: "dynamic-few-shot", examples: dyn, note: "4 examples retrieved by semantic similarity to the topic" },
+    { name: "dynamic-few-shot", examples: dyn, note: "examples retrieved by semantic similarity to the topic" },
   ];
 }
 
-async function run() {
-  const strat = await strategies(); // loads the embedding model (dynamic-few-shot retrieval)
-  console.log(`\n╔═ Headline Lab ═ topic: "${topic}"${amountFlag ? ` · amount: ${amountFlag}` : ""}`);
-  console.log(`║  generator: ${llmEnabled() ? "Anthropic (" + (process.env.HEADLINE_MODEL || "claude-opus-4-8") + ")" : "template fallback (set ANTHROPIC_API_KEY for real generation)"}  ·  retrieval: ${embedMode()}\n`);
-
-  const prof = patternProfile(seeds.headlines);
-  console.log(`Learned grammar from ${prof.count} real outliers — top elements: ` +
-    Object.entries(prof.elementRate).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t, r]) => `${t} ${(r * 100).toFixed(0)}%`).join(", "));
-  console.log(`Most common skeleton: ${prof.topSkeletons[0]?.[0]}\n`);
-
+// Shared engine → structured result (no printing). Used by CLI + web.
+export async function runLab(topic, { amount = null, n = N } = {}) {
+  const profile = patternProfile(seeds.headlines);
+  const strat = await buildStrategies(topic); // loads the embedding model
   const rows = [];
   for (const s of strat) {
     let titles = null;
     if (llmEnabled()) {
-      titles = await generateWithLLM({ topic: amountFlag ? `${topic} (${amountFlag})` : topic, exampleTitles: s.examples, grammarNote: GRAMMAR, n: N });
+      titles = await generateWithLLM({ topic: amount ? `${topic} (${amount})` : topic, exampleTitles: s.examples, grammarNote: GRAMMAR, n });
     }
-    if (!titles || !titles.length) titles = templateGenerate(s.examples.length ? s.examples : SEED_TITLES, N);
+    if (!titles || !titles.length) titles = templateGenerate(s.examples.length ? s.examples : SEED_TITLES, topic, amount, n);
     const scored = titles.map(scoreTitle).sort((a, b) => b.score - a.score);
     const avg = scored.reduce((x, r) => x + r.score, 0) / scored.length;
-    rows.push({ strategy: s.name, note: s.note, avg, best: scored[0], all: scored });
+    rows.push({ strategy: s.name, note: s.note, examples: s.examples, avg: Math.round(avg), best: scored[0], all: scored });
   }
-
   rows.sort((a, b) => b.avg - a.avg);
-  console.log("STRATEGY BAKE-OFF  (CTR-proxy, higher = more clickable)\n");
-  console.log("strategy           avg   best score   best title");
-  console.log("─────────────────  ───   ──────────   ──────────");
-  for (const r of rows)
-    console.log(`${r.strategy.padEnd(17)}  ${r.avg.toFixed(0).padStart(3)}   ${String(r.best.score).padStart(3)}          ${r.best.title}`);
-
-  const win = rows[0];
-  console.log(`\n🏆 winning strategy: ${win.strategy} (avg ${win.avg.toFixed(0)}) — ${win.note}`);
-  console.log(`   top title: "${win.best.title}"  [${win.best.score}/100 · ${win.best.elements.join(", ")}]\n`);
-
-  console.log("All candidates from the winner:");
-  for (const r of win.all) console.log(`  ${String(r.score).padStart(3)}  ${r.title}`);
-  console.log();
+  return {
+    topic, amount,
+    generator: llmEnabled() ? `Anthropic (${process.env.HEADLINE_MODEL || "claude-opus-4-8"})` : "template (on-device)",
+    retrievalMode: embedMode(),
+    profile, rows, winner: rows[0],
+  };
 }
 
-run();
+// ---- CLI ----
+if (import.meta.main) {
+  const argv = process.argv.slice(2);
+  const topic = argv.find((a) => !a.startsWith("--")) || "new SBA small-business grant";
+  const i = argv.indexOf("--amount");
+  const amount = i >= 0 ? argv[i + 1] : null;
+  const r = await runLab(topic, { amount });
+
+  console.log(`\n╔═ Headline Lab ═ topic: "${r.topic}"${amount ? ` · amount: ${amount}` : ""}`);
+  console.log(`║  generator: ${r.generator}  ·  retrieval: ${r.retrievalMode}\n`);
+  console.log(`Learned grammar from ${r.profile.count} real outliers — top elements: ` +
+    Object.entries(r.profile.elementRate).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t, v]) => `${t} ${(v * 100).toFixed(0)}%`).join(", "));
+  console.log(`Most common skeleton: ${r.profile.topSkeletons[0]?.[0]}\n`);
+  console.log("STRATEGY BAKE-OFF  (CTR-proxy, higher = more clickable)\n");
+  console.log("strategy           avg   best   best title");
+  console.log("─────────────────  ───   ────   ──────────");
+  for (const row of r.rows)
+    console.log(`${row.strategy.padEnd(17)}  ${String(row.avg).padStart(3)}   ${String(row.best.score).padStart(3)}    ${row.best.title}`);
+  console.log(`\n🏆 ${r.winner.strategy} (avg ${r.winner.avg}) — ${r.winner.note}`);
+  console.log(`   "${r.winner.best.title}"  [${r.winner.best.score}/100 · ${r.winner.best.elements.join(", ")}]\n`);
+}
