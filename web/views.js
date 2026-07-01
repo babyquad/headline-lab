@@ -7,7 +7,8 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 
 const TYPE_COLOR = {
   AMOUNT: "#22c55e", AUDIENCE: "#38bdf8", SPEED: "#f59e0b", URGENCY: "#ef4444",
-  CTA: "#a78bfa", AUTHORITY: "#e879f9", NOVELTY: "#2dd4bf", PROOF: "#fb7185", NUMBER: "#94a3b8", PLAIN: "#3f3f46",
+  CTA: "#a78bfa", AUTHORITY: "#e879f9", NOVELTY: "#2dd4bf", PROOF: "#fb7185", NUMBER: "#94a3b8",
+  ENTITY: "#60a5fa", SHOCK: "#f43f5e", FREE: "#34d399", HOWTO: "#c084fc", PLAIN: "#3f3f46",
 };
 
 export function page({ title, body }) {

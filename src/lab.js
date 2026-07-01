@@ -13,7 +13,7 @@ import { mostSimilar, embedMode } from "./embed.js";
 import { llmEnabled, generateWithLLM } from "./llm.js";
 
 // Corpora the lab can learn from: your channel, the cross-channel niche, or both.
-const CORPORA = { mine: "rod-squad-outliers.json", niche: "niche-grants-crosschannel.json" };
+const CORPORA = { ai: "ai-vlog-crosschannel.json", mine: "rod-squad-outliers.json", niche: "niche-grants-crosschannel.json" };
 export const CORPUS_KEYS = [...Object.keys(CORPORA), "both"];
 const readSeeds = (file) => JSON.parse(readFileSync(join(import.meta.dir, "../seeds/", file), "utf-8"));
 
@@ -35,18 +35,35 @@ const GRAMMAR =
   "Favor: a specific dollar AMOUNT, an AUDIENCE (e.g. for EVERYONE / Startups), a SPEED (in X minutes/hours), URGENCY, and a clear CTA. Keep it ~35-65 characters.";
 
 // Keyless fallback: assemble titles from the slot grammar of an example pool.
-function templateGenerate(pool, topic, amount, n) {
-  const slots = { AMOUNT: [], AUDIENCE: [], SPEED: [], CTA: [], URGENCY: [], PROOF: [], AUTHORITY: [] };
+// `style` picks the template family: "ai" (entity/shock/free) or "grant" ($/audience/speed).
+function templateGenerate(pool, topic, amount, n, style = "grant") {
+  const types = ["AMOUNT", "AUDIENCE", "SPEED", "CTA", "URGENCY", "PROOF", "AUTHORITY", "ENTITY", "SHOCK", "FREE", "HOWTO"];
+  const slots = Object.fromEntries(types.map((t) => [t, []]));
   for (const t of pool) for (const c of decompose(t).components) if (slots[c.type]) slots[c.type].push(c.span);
   const def = {
     AMOUNT: ["$25,000", "$10,000", "$150,000"], AUDIENCE: ["for EVERYONE", "for Startups"],
     SPEED: ["in 10 Minutes", "in 2 Hours"], CTA: ["Do THIS to Qualify!", "How to Apply!"],
     URGENCY: ["HURRY!", "Deadline in Days!"], PROOF: ["NO CAP! PROOF!"], AUTHORITY: ["SBA"],
+    ENTITY: ["GPT-4", "Gemini", "Claude"], SHOCK: ["SHOCKED", "STUNS", "INSANE"], FREE: ["FREE", "UNLIMITED"], HOWTO: ["Here's How"],
   };
-  const uniq = (k) => { const a = [...new Set(slots[k])]; return a.length ? a : def[k]; };
-  const pick = (k, i) => { const a = uniq(k); return a[i % a.length]; };
+  const uniq = (k) => { const a = [...new Set(slots[k])]; return a.length ? a : (def[k] || [""]); };
+  const pick = (k, i) => uniq(k)[i % uniq(k).length];
   const core = topic.replace(/\b\w/g, (m) => m.toUpperCase());
-  // Don't tack on an AUDIENCE the topic already implies (avoids "...Small Business Small Business").
+  // pick an entity from the pool that the topic doesn't already mention
+  const ent = (i) => { const e = uniq("ENTITY").filter((x) => !new RegExp(x.replace(/[-.]/g, "\\$&"), "i").test(topic)); return (e.length ? e : uniq("ENTITY"))[i % (e.length || 1)]; };
+
+  if (style === "ai") {
+    const templates = [
+      (i) => `${core} — You Won't Believe This`,
+      (i) => `${core}: Here's How`,
+      (i) => `New ${core} Just SHOCKED Everyone (Better Than ${ent(i)})`,
+      (i) => `${core} — FREE & Unlimited`,
+      (i) => `Why ${core} Changes Everything`,
+    ];
+    return templates.slice(0, n).map((f, i) => f(i).replace(/\s+/g, " ").trim());
+  }
+
+  // grant style
   const aud = (i) => (/\b(everyone|business|startup|veteran|felon|student)\b/i.test(topic) ? "" : ` ${pick("AUDIENCE", i)}`);
   const A = amount ? () => amount : (i) => pick("AMOUNT", i);
   const templates = [
@@ -82,7 +99,8 @@ export async function runLab(topic, { amount = null, n = N, corpus = "mine" } = 
     if (llmEnabled()) {
       genTitles = await generateWithLLM({ topic: amount ? `${topic} (${amount})` : topic, exampleTitles: s.examples, grammarNote: GRAMMAR, n });
     }
-    if (!genTitles || !genTitles.length) genTitles = templateGenerate(s.examples.length ? s.examples : titles, topic, amount, n);
+    const style = corpus === "ai" ? "ai" : "grant";
+    if (!genTitles || !genTitles.length) genTitles = templateGenerate(s.examples.length ? s.examples : titles, topic, amount, n, style);
     const scored = genTitles.map(scoreTitle).sort((a, b) => b.score - a.score);
     const avg = scored.reduce((x, r) => x + r.score, 0) / scored.length;
     rows.push({ strategy: s.name, note: s.note, examples: s.examples, avg: Math.round(avg), best: scored[0], all: scored });

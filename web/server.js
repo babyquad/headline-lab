@@ -4,23 +4,24 @@
 import { Hono } from "hono";
 import { decompose } from "../src/decompose.js";
 import { scoreTitle } from "../src/score.js";
-import { runLab, SEED_TITLES, SEEDS_META } from "../src/lab.js";
+import { runLab, SEED_TITLES, SEEDS_META, loadCorpus } from "../src/lab.js";
 import { llmEnabled } from "../src/llm.js";
 import { page, legend, decomposeResult, bakeoffResult } from "./views.js";
 
 const app = new Hono();
 const PORT = Number(process.env.HL_PORT || 3009);
 
-const SAMPLE = "Hurry! $25,000 Grants for EVERYONE - 20 Minutes - Guaranteed Money FAST!";
+const SAMPLE = "Googles GEMINI Just SHOCKED The ENTIRE INDUSTRY! (GPT-4 Beaten)";
+const AI_CORPUS = loadCorpus("ai");
 
 function home() {
-  const examples = SEED_TITLES.slice(0, 4)
+  const examples = AI_CORPUS.headlines.slice(0, 4).map((h) => h.title)
     .map((t) => `<div class="ex" hx-get="/decompose?title=${encodeURIComponent(t)}" hx-target="#dresult">${t}</div>`)
     .join("");
   const body = `
   <header>
     <h1>Headline Lab</h1>
-    <p>Decompose a viral title into its persuasion grammar, then generate new ones across prompt strategies — scored to see which wins. Trained on real <b>${SEEDS_META.channelTitle}</b> outliers (${SEEDS_META.subscribers.toLocaleString()} subs).</p>
+    <p>Decompose a viral title into its persuasion grammar, then generate new ones across prompt strategies — scored to see which wins. Trained on cross-channel outliers from <b>~20 AI-vlog channels</b> (Matt Wolfe, Wes Roth, TheAIGRID, David Ondrej, AI Search…) — switch corpora below.</p>
   </header>
 
   <div class="card">
@@ -37,11 +38,11 @@ function home() {
   <div class="card">
     <h2>2 · Strategy bake-off — generate for a topic</h2>
     <form hx-get="/bakeoff" hx-target="#bresult" hx-indicator="#bi" class="row">
-      <input type="text" name="topic" value="small business grant for veterans" placeholder="Video topic…">
+      <input type="text" name="topic" value="new open-source AI model beats GPT-4" placeholder="Video topic…">
       <select name="corpus" style="background:#0f0f18;border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:9px">
-        <option value="mine">train on: my channel</option>
-        <option value="niche">train on: niche (cross-channel)</option>
-        <option value="both" selected>train on: both</option>
+        <option value="ai" selected>train on: AI channels (~20)</option>
+        <option value="mine">train on: my channel (grants)</option>
+        <option value="niche">train on: grant niche</option>
       </select>
       <button>Run bake-off</button><span id="bi" class="htmx-indicator muted">running…</span>
     </form>
