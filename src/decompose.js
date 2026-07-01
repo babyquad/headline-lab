@@ -17,11 +17,16 @@
 //   NUMBER     — non-dollar quantity (20 Companies, 21 Days)
 //   PLAIN      — everything else
 
-export const TYPES = ["AMOUNT","AUDIENCE","SPEED","URGENCY","CTA","AUTHORITY","NOVELTY","PROOF","NUMBER","PLAIN"];
+export const TYPES = ["AMOUNT","ENTITY","SHOCK","FREE","HOWTO","AUDIENCE","SPEED","URGENCY","CTA","AUTHORITY","NOVELTY","PROOF","NUMBER","PLAIN"];
 
 // Ordered patterns — first match wins per span. More specific before general.
 const RULES = [
   ["AMOUNT",    /\$\s?\d[\d,]*(?:\.\d+)?\s?(?:k|m|million|billion|grand)?\b/gi],
+  // ---- AI-niche grammar ----
+  ["ENTITY",    /\b(?:chat\s?gpt|gpt-?4o?|gpt-?5|gpt-?3(?:\.5)?|gpt|claude|gemini|open\s?ai|sora|veo\s?\d?|midjourney|llama|dall-?e|copilot|grok|deepseek|perplexity|runway|nvidia|agi|o1|o3)\b/gi],
+  ["SHOCK",     /\b(?:shocked?|shocking|stuns?|stunned|insane|scary|terrifying|mind-?blowing|unbelievable|you (?:won'?t believe|don'?t understand)|nobody|no one|changes everything|the end of|is here|too real)\b/gi],
+  ["FREE",      /\b(?:free|unlimited|100% legal|no gpu|for free)\b/gi],
+  ["HOWTO",     /\b(?:here'?s how|how to|tutorial|install|step[- ]by[- ]step|guide|explained|build (?:anything|everything))\b/gi],
   ["SPEED",     /\bin\s+\d+\s*(?:minutes?|mins?|hours?|hrs?|days?|weeks?)\b|\b\d+\s*(?:minutes?|hours?|days?)\b(?=\s*[-–—!])/gi],
   ["URGENCY",   /\b(?:hurry|now|today|tomorrow|deadline|closes?|expir\w+|last chance|don'?t wait|fast|asap|ends?)\b/gi],
   ["CTA",       /\b(?:do this to qualify|how to apply|apply now|call to apply|do this to|to qualify|get (?:your|the) money|claim (?:your|yours))\b/gi],

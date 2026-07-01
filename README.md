@@ -2,6 +2,10 @@
 
 Codifies a YouTube-title workflow into a runnable, testable artifact: **learn the winning grammar from real outlier titles → generate candidates across prompt strategies → score which strategy wins.** Built to demonstrate advanced prompt engineering + LLM evaluation on **real channel data** (not toy examples).
 
+**▶ Live demo: https://headlines.ragflo.com** — decompose & score any headline, or run the strategy bake-off in the browser.
+
+**Corpora (switchable):** the lab learns the winning grammar from real outliers pulled via vidIQ — choose **~20 AI-vlog channels** (Matt Wolfe, Wes Roth, TheAIGRID, David Ondrej, AI Search…), a single channel, or a niche (grants). It even adapts the component grammar per niche — grant titles decompose into `AMOUNT / AUDIENCE / SPEED`, AI titles into `ENTITY / SHOCK / HOWTO / FREE`.
+
 > Origin: my manual process — pull a channel's outlier videos (the "1of10" move), feed the winning headlines to an LLM, have it **classify each component of the title by type**, then generate new titles my audience would click. This repo turns that into code.
 
 ## The pipeline

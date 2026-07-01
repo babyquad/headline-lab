@@ -10,14 +10,21 @@ import { decompose } from "./decompose.js";
 
 // Weights — tuned to what high-breakout Rod Squad titles share.
 const WEIGHTS = {
-  AMOUNT: 26,     // the core promise; almost every outlier has one
+  // grant / money niche
+  AMOUNT: 26,     // the core promise; almost every grant outlier has one
   AUDIENCE: 14,   // "for EVERYONE / FELONS / Startups"
   SPEED: 14,      // "in X minutes/hours"
   CTA: 12,        // "Do THIS to Qualify"
   URGENCY: 12,    // "HURRY / Deadline"
-  PROOF: 9,       // "NO CAP / PROOF / GUARANTEED"
+  PROOF: 9,       // "NO CAP / PROOF / GUARANTEED / LEAKED"
   AUTHORITY: 8,   // "SBA / IRS / EIDL"
-  NOVELTY: 5,     // "NEW / 2025"
+  NOVELTY: 6,     // "NEW / 2025 / 2026"
+  // AI-content niche
+  ENTITY: 20,     // named model = the hook ("GPT-4", "Gemini", "Claude")
+  SHOCK: 18,      // curiosity/hype ("SHOCKED", "STUNS", "you don't understand")
+  HOWTO: 11,      // "Here's How / Tutorial / Install / Build Anything"
+  FREE: 11,       // "FREE / UNLIMITED"
+  NUMBER: 5,      // listicle count ("26 Use Cases", "900%")
 };
 
 export function scoreTitle(title) {
