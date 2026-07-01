@@ -74,7 +74,7 @@ export function bakeoffResult(res) {
   const winnerAll = res.winner.all.map((c) =>
     `<tr><td class="score" style="width:44px">${c.score}</td><td>${esc(c.title)}</td></tr>`).join("");
   return `<div>
-    <p class="muted">Learned from ${prof.count} real outliers — top elements: <b>${topEl}</b>. Most common skeleton: <code>${esc(prof.topSkeletons[0]?.[0] || "")}</code></p>
+    <p class="muted">Trained on <b>${esc(res.corpusLabel)}</b> (${res.corpusCount} outliers) — top elements: <b>${topEl}</b>. Most common skeleton: <code>${esc(prof.topSkeletons[0]?.[0] || "")}</code></p>
     <table><thead><tr><th>strategy</th><th>avg</th><th>best</th><th>best title</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="win"><b>Winner: ${res.winner.strategy}</b> <span class="muted">— ${esc(res.winner.note)}</span>
       <table style="margin-top:8px"><tbody>${winnerAll}</tbody></table></div>

@@ -38,9 +38,14 @@ function home() {
     <h2>2 · Strategy bake-off — generate for a topic</h2>
     <form hx-get="/bakeoff" hx-target="#bresult" hx-indicator="#bi" class="row">
       <input type="text" name="topic" value="small business grant for veterans" placeholder="Video topic…">
+      <select name="corpus" style="background:#0f0f18;border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:9px">
+        <option value="mine">train on: my channel</option>
+        <option value="niche">train on: niche (cross-channel)</option>
+        <option value="both" selected>train on: both</option>
+      </select>
       <button>Run bake-off</button><span id="bi" class="htmx-indicator muted">running…</span>
     </form>
-    <p class="muted" style="margin-top:8px">Generates candidates via <b>zero-shot · few-shot · multi-shot · dynamic-few-shot</b> (retrieval), scores each, ranks the winner.</p>
+    <p class="muted" style="margin-top:8px">Generates candidates via <b>zero-shot · few-shot · multi-shot · dynamic-few-shot</b> (retrieval), scores each, ranks the winner. Learn the grammar from your channel, the wider niche's cross-channel outliers, or both.</p>
     <div id="bresult" style="margin-top:6px"></div>
   </div>
 
@@ -64,7 +69,8 @@ app.get("/decompose", (c) => {
 app.get("/bakeoff", async (c) => {
   const topic = (c.req.query("topic") || "").trim() || "new SBA small-business grant";
   const amount = c.req.query("amount") || null;
-  const res = await runLab(topic, { amount });
+  const corpus = c.req.query("corpus") || "mine";
+  const res = await runLab(topic, { amount, corpus });
   return c.html(bakeoffResult(res));
 });
 
@@ -77,7 +83,7 @@ app.get("/api/decompose", (c) => {
 app.get("/api/bakeoff", async (c) => {
   const topic = (c.req.query("topic") || "").trim();
   if (!topic) return c.json({ error: "missing topic" }, 400);
-  return c.json(await runLab(topic, { amount: c.req.query("amount") || null }));
+  return c.json(await runLab(topic, { amount: c.req.query("amount") || null, corpus: c.req.query("corpus") || "mine" }));
 });
 
 console.log(`[headline-lab] listening on :${PORT}`);

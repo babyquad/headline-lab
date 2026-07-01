@@ -12,9 +12,23 @@ import { scoreTitle } from "./score.js";
 import { mostSimilar, embedMode } from "./embed.js";
 import { llmEnabled, generateWithLLM } from "./llm.js";
 
-const seeds = JSON.parse(readFileSync(join(import.meta.dir, "../seeds/rod-squad-outliers.json"), "utf-8"));
-export const SEED_TITLES = seeds.headlines.map((h) => h.title);
-export const SEEDS_META = seeds;
+// Corpora the lab can learn from: your channel, the cross-channel niche, or both.
+const CORPORA = { mine: "rod-squad-outliers.json", niche: "niche-grants-crosschannel.json" };
+export const CORPUS_KEYS = [...Object.keys(CORPORA), "both"];
+const readSeeds = (file) => JSON.parse(readFileSync(join(import.meta.dir, "../seeds/", file), "utf-8"));
+
+export function loadCorpus(key = "mine") {
+  if (key === "both") {
+    const a = readSeeds(CORPORA.mine), b = readSeeds(CORPORA.niche);
+    return { label: "my channel + niche", headlines: [...a.headlines, ...b.headlines] };
+  }
+  const s = readSeeds(CORPORA[key] || CORPORA.mine);
+  return { label: s.channelTitle || key, headlines: s.headlines };
+}
+
+const _mine = readSeeds(CORPORA.mine);
+export const SEED_TITLES = _mine.headlines.map((h) => h.title);
+export const SEEDS_META = _mine;
 
 const N = 5;
 const GRAMMAR =
@@ -45,34 +59,37 @@ function templateGenerate(pool, topic, amount, n) {
   return templates.slice(0, n).map((f, i) => f(i).replace(/\s+/g, " ").trim());
 }
 
-async function buildStrategies(topic) {
-  const dyn = (await mostSimilar(topic, SEED_TITLES, 4)).map((r) => r.text);
+async function buildStrategies(topic, titles) {
+  const dyn = (await mostSimilar(topic, titles, 4)).map((r) => r.text);
   return [
     { name: "zero-shot", examples: [], note: "no examples — grammar rules only" },
-    { name: "few-shot", examples: SEED_TITLES.slice(0, 3), note: "3 fixed examples" },
-    { name: "multi-shot", examples: SEED_TITLES, note: `${SEED_TITLES.length} examples` },
+    { name: "few-shot", examples: titles.slice(0, 3), note: "3 fixed examples" },
+    { name: "multi-shot", examples: titles, note: `${titles.length} examples` },
     { name: "dynamic-few-shot", examples: dyn, note: "examples retrieved by semantic similarity to the topic" },
   ];
 }
 
 // Shared engine → structured result (no printing). Used by CLI + web.
-export async function runLab(topic, { amount = null, n = N } = {}) {
-  const profile = patternProfile(seeds.headlines);
-  const strat = await buildStrategies(topic); // loads the embedding model
+// `corpus` = "mine" | "niche" | "both" — which outliers to learn the grammar from.
+export async function runLab(topic, { amount = null, n = N, corpus = "mine" } = {}) {
+  const c = loadCorpus(corpus);
+  const titles = c.headlines.map((h) => h.title);
+  const profile = patternProfile(c.headlines);
+  const strat = await buildStrategies(topic, titles); // loads the embedding model
   const rows = [];
   for (const s of strat) {
-    let titles = null;
+    let genTitles = null;
     if (llmEnabled()) {
-      titles = await generateWithLLM({ topic: amount ? `${topic} (${amount})` : topic, exampleTitles: s.examples, grammarNote: GRAMMAR, n });
+      genTitles = await generateWithLLM({ topic: amount ? `${topic} (${amount})` : topic, exampleTitles: s.examples, grammarNote: GRAMMAR, n });
     }
-    if (!titles || !titles.length) titles = templateGenerate(s.examples.length ? s.examples : SEED_TITLES, topic, amount, n);
-    const scored = titles.map(scoreTitle).sort((a, b) => b.score - a.score);
+    if (!genTitles || !genTitles.length) genTitles = templateGenerate(s.examples.length ? s.examples : titles, topic, amount, n);
+    const scored = genTitles.map(scoreTitle).sort((a, b) => b.score - a.score);
     const avg = scored.reduce((x, r) => x + r.score, 0) / scored.length;
     rows.push({ strategy: s.name, note: s.note, examples: s.examples, avg: Math.round(avg), best: scored[0], all: scored });
   }
   rows.sort((a, b) => b.avg - a.avg);
   return {
-    topic, amount,
+    topic, amount, corpus, corpusLabel: c.label, corpusCount: c.headlines.length,
     generator: llmEnabled() ? `Anthropic (${process.env.HEADLINE_MODEL || "claude-opus-4-8"})` : "template (on-device)",
     retrievalMode: embedMode(),
     profile, rows, winner: rows[0],
@@ -85,10 +102,12 @@ if (import.meta.main) {
   const topic = argv.find((a) => !a.startsWith("--")) || "new SBA small-business grant";
   const i = argv.indexOf("--amount");
   const amount = i >= 0 ? argv[i + 1] : null;
-  const r = await runLab(topic, { amount });
+  const ci = argv.indexOf("--corpus");
+  const corpus = ci >= 0 ? argv[ci + 1] : "mine";
+  const r = await runLab(topic, { amount, corpus });
 
   console.log(`\n╔═ Headline Lab ═ topic: "${r.topic}"${amount ? ` · amount: ${amount}` : ""}`);
-  console.log(`║  generator: ${r.generator}  ·  retrieval: ${r.retrievalMode}\n`);
+  console.log(`║  corpus: ${r.corpusLabel} (${r.corpusCount})  ·  generator: ${r.generator}  ·  retrieval: ${r.retrievalMode}\n`);
   console.log(`Learned grammar from ${r.profile.count} real outliers — top elements: ` +
     Object.entries(r.profile.elementRate).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t, v]) => `${t} ${(v * 100).toFixed(0)}%`).join(", "));
   console.log(`Most common skeleton: ${r.profile.topSkeletons[0]?.[0]}\n`);

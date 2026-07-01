@@ -1,0 +1,17 @@
+{
+  "_comment": "CROSS-CHANNEL outliers in the grant / free-money niche (NOT Neal's channel). Pulled via vidIQ outliers by keyword 'small business grant free money', filtered to on-grammar, high-breakout titles from other creators (Matthew Lesko, Darcy's Business, Money Time w/ Ebonie Dion, The Credit Elect, Paris Nikkole). Lets the lab learn the whole niche's winning grammar, not just one channel's. Same role 1of10 serves — vidIQ is the API-accessible equivalent (1of10 has no public API).",
+  "channelTitle": "Grant / Free-Money niche (cross-channel)",
+  "source": "vidIQ outliers · keyword search",
+  "headlines": [
+    { "title": "Easiest Grant EVER! Apply Here For Free", "channel": "Matthew Lesko", "views": 1029188, "breakoutScore": 697.74 },
+    { "title": "Startup Business Grants for Your Small Business [FREE MONEY] $62,000 In Grants | Apply Today", "channel": "The Credit Elect", "views": 74023, "breakoutScore": 142.35 },
+    { "title": "$15,000 Small Business Start-Up Grant: No Business Required, Quick and Simple Application!", "channel": "Money Time w/ Ebonie Dion", "views": 145420, "breakoutScore": 111.68 },
+    { "title": "$2,750 Small Business Grant (Even Without a Business!) in 30 Seconds! Quick and Simple Application!", "channel": "Money Time w/ Ebonie Dion", "views": 124624, "breakoutScore": 103.75 },
+    { "title": "$10,000 Business Grant With No Business", "channel": "Matthew Lesko", "views": 158401, "breakoutScore": 46.63 },
+    { "title": "$10,000 Grant – FREE Money for Anyone! No Strings Attached", "channel": "Darcy's Business", "views": 111325, "breakoutScore": 40.78 },
+    { "title": "$460,000 in Small Business Start-up Grants-EASY FREE MONEY-No Business Needed-Global Opportunity", "channel": "Money Time w/ Ebonie Dion", "views": 52619, "breakoutScore": 37.12 },
+    { "title": "$10,000 Grant – Open To Everyone (No Business Needed)", "channel": "Darcy's Business", "views": 46527, "breakoutScore": 31.41 },
+    { "title": "Apply for a Small Business Grant in 2023! Over $1,000,000 in Grants Available!", "channel": "Paris Nikkole", "views": 119306, "breakoutScore": 28.31 },
+    { "title": "$7,500 Business Grant | NO Business Needed |No Deadline + Hardship Help!", "channel": "Money Time w/ Ebonie Dion", "views": 48136, "breakoutScore": 21.72 }
+  ]
+}
