@@ -15,13 +15,24 @@
 //   NOVELTY    — freshness (NEW, 2025, Update)
 //   PROOF      — credibility spike (NO CAP, PROOF, Guaranteed, LEAKED, BREAKING)
 //   NUMBER     — non-dollar quantity (20 Companies, 21 Days)
+//   BIBLICAL   — named figure, being, book or place (Michael, Lucifer, Moses, Genesis, the Red Sea)
+//   MYSTERY    — hidden-truth hook (Untold, Forbidden, Nobody Tells, Like You've Never Heard It)
+//   QUESTION   — the title asks something (Why..., What..., How Strong Is..., ...?)
+//   SCALE      — completeness promise (COMPLETE, Entire, Every, 2 Hours of)
+//   STAKES     — second-person stakes (For You, YOUR Soul, Will Haunt You, You Need to)
 //   PLAIN      — everything else
 
-export const TYPES = ["AMOUNT","ENTITY","SHOCK","FREE","HOWTO","AUDIENCE","SPEED","URGENCY","CTA","AUTHORITY","NOVELTY","PROOF","NUMBER","PLAIN"];
+export const TYPES = ["AMOUNT","ENTITY","SHOCK","FREE","HOWTO","BIBLICAL","MYSTERY","QUESTION","SCALE","STAKES","AUDIENCE","SPEED","URGENCY","CTA","AUTHORITY","NOVELTY","PROOF","NUMBER","PLAIN"];
 
 // Ordered patterns — first match wins per span. More specific before general.
 const RULES = [
   ["AMOUNT",    /\$\s?\d[\d,]*(?:\.\d+)?\s?(?:k|m|million|billion|grand)?\b/gi],
+  // ---- faith / Bible-story grammar (learned from seeds/niche-faith-crosschannel.json) ----
+  ["STAKES",    /\b(?:for you|your (?:soul|life|faith|family|eyes)|you need to|will (?:shock|haunt|change) you|to you|closer to the end)\b/gi],
+  ["BIBLICAL",  /\b(?:god|jesus|christ|lucifer|satan|the devil|archangels?|angels?|demons?|michael|gabriel|moses|david|goliath|noah|adam|eve|cain|abel|abraham|isaac|jacob|joseph|elijah|elisha|samson|delilah|daniel|jonah|enoch|nephilim|watchers|pharaoh|mary|peter|paul|judas|solomon|esther|ruth|job|zacchaeus|lazarus|the bible|bible|scripture|heaven|hell|the flood|flood|ark|red sea|genesis|revelation|nativity|prophets?|giant|shepherd|miracles?|the cross|resurrection|disciples?|apostles?|eden|babel|sodom|egypt|israel|jerusalem|the temple|serpent)\b/gi],
+  ["MYSTERY",   /\b(?:hidden|untold|forbidden|secret|myster(?:y|ies|ious)|never told|nobody tells|nobody reads|not what you were told|like you'?ve never heard(?: it)?|really|actually|the truth about|can'?t explain|cannot see)\b/gi],
+  ["SCALE",     /\b(?:complete(?:ly)?|entire|every|whole|full|all of|\d+\s+hours? of|history of)\b/gi],
+  ["QUESTION",  /^(?:why|what|who|where|when|how(?!\s+to\b))\b|\?/gi],
   // ---- AI-niche grammar ----
   ["ENTITY",    /\b(?:chat\s?gpt|gpt-?4o?|gpt-?5|gpt-?3(?:\.5)?|gpt|claude|gemini|open\s?ai|sora|veo\s?\d?|midjourney|llama|dall-?e|copilot|grok|deepseek|perplexity|runway|nvidia|agi|o1|o3)\b/gi],
   ["SHOCK",     /\b(?:shocked?|shocking|stuns?|stunned|insane|scary|terrifying|mind-?blowing|unbelievable|you (?:won'?t believe|don'?t understand)|nobody|no one|changes everything|the end of|is here|too real)\b/gi],

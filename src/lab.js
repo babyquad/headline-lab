@@ -12,8 +12,11 @@ import { scoreTitle } from "./score.js";
 import { mostSimilar, embedMode } from "./embed.js";
 import { llmEnabled, generateWithLLM } from "./llm.js";
 
-// Corpora the lab can learn from: your channel, the cross-channel niche, or both.
-const CORPORA = { ai: "ai-vlog-crosschannel.json", mine: "rod-squad-outliers.json", niche: "niche-grants-crosschannel.json" };
+// Corpora the lab can learn from: your channel, a cross-channel niche (grants, AI, faith), or both.
+const CORPORA = { ai: "ai-vlog-crosschannel.json", mine: "rod-squad-outliers.json", niche: "niche-grants-crosschannel.json", faith: "niche-faith-crosschannel.json" };
+// Which scoring/generation style each corpus uses (anything else falls back to "grant").
+const STYLE_FOR = { ai: "ai", faith: "faith" };
+export const styleFor = (corpus) => STYLE_FOR[corpus] || "grant";
 export const CORPUS_KEYS = [...Object.keys(CORPORA), "both"];
 const readSeeds = (file) => JSON.parse(readFileSync(join(import.meta.dir, "../seeds/", file), "utf-8"));
 
@@ -31,8 +34,13 @@ export const SEED_TITLES = _mine.headlines.map((h) => h.title);
 export const SEEDS_META = _mine;
 
 const N = 5;
-const GRAMMAR =
-  "Favor: a specific dollar AMOUNT, an AUDIENCE (e.g. for EVERYONE / Startups), a SPEED (in X minutes/hours), URGENCY, and a clear CTA. Keep it ~35-65 characters.";
+const GRAMMARS = {
+  grant: "Favor: a specific dollar AMOUNT, an AUDIENCE (e.g. for EVERYONE / Startups), a SPEED (in X minutes/hours), URGENCY, and a clear CTA. Keep it ~35-65 characters.",
+  ai: "Favor: a named model or product (the ENTITY), a SHOCK or curiosity hook, FREE/UNLIMITED where true, and a HOW-TO promise. Keep it ~35-65 characters.",
+  // Derral Eves's title rules: short, plain, human; no "Topic: Subtitle | Tag" construction.
+  faith: "Favor: a named biblical figure, being, book or place; a hidden / untold / mystery hook or a question the viewer wants answered; stakes for the viewer; or a complete / entire scale promise. Plain, human phrasing: no colons or pipes, at most one all-caps word, under 55 characters.",
+};
+const grammarFor = (style) => GRAMMARS[style] || GRAMMARS.grant;
 
 // Keyless fallback: assemble titles from the slot grammar of an example pool.
 // `style` picks the template family: "ai" (entity/shock/free) or "grant" ($/audience/speed).
@@ -51,6 +59,18 @@ function templateGenerate(pool, topic, amount, n, style = "grant") {
   const core = topic.replace(/\b\w/g, (m) => m.toUpperCase());
   // pick an entity from the pool that the topic doesn't already mention
   const ent = (i) => { const e = uniq("ENTITY").filter((x) => !new RegExp(x.replace(/[-.]/g, "\\$&"), "i").test(topic)); return (e.length ? e : uniq("ENTITY"))[i % (e.length || 1)]; };
+
+  if (style === "faith") {
+    // Eves-compliant frames: no colon/pipe, under ~55 chars, one hook each.
+    const templates = [
+      (i) => `The Untold Story of ${core}`,
+      (i) => `What the Bible Really Says About ${core}`,
+      (i) => `${core} Like You've Never Heard It`,
+      (i) => `The Hidden Truth Behind ${core}`,
+      (i) => `Why ${core} Changed Everything`,
+    ];
+    return templates.slice(0, n).map((f, i) => f(i).replace(/\s+/g, " ").trim());
+  }
 
   if (style === "ai") {
     const templates = [
@@ -87,9 +107,10 @@ async function buildStrategies(topic, titles) {
 }
 
 // Shared engine → structured result (no printing). Used by CLI + web.
-// `corpus` = "mine" | "niche" | "both" — which outliers to learn the grammar from.
+// `corpus` = "mine" | "niche" | "ai" | "faith" | "both" — which outliers to learn the grammar from.
 export async function runLab(topic, { amount = null, n = N, corpus = "mine" } = {}) {
   const c = loadCorpus(corpus);
+  const style = styleFor(corpus);
   const titles = c.headlines.map((h) => h.title);
   const profile = patternProfile(c.headlines);
   const strat = await buildStrategies(topic, titles); // loads the embedding model
@@ -97,17 +118,16 @@ export async function runLab(topic, { amount = null, n = N, corpus = "mine" } = 
   for (const s of strat) {
     let genTitles = null;
     if (llmEnabled()) {
-      genTitles = await generateWithLLM({ topic: amount ? `${topic} (${amount})` : topic, exampleTitles: s.examples, grammarNote: GRAMMAR, n });
+      genTitles = await generateWithLLM({ topic: amount ? `${topic} (${amount})` : topic, exampleTitles: s.examples, grammarNote: grammarFor(style), n });
     }
-    const style = corpus === "ai" ? "ai" : "grant";
     if (!genTitles || !genTitles.length) genTitles = templateGenerate(s.examples.length ? s.examples : titles, topic, amount, n, style);
-    const scored = genTitles.map(scoreTitle).sort((a, b) => b.score - a.score);
+    const scored = genTitles.map((t) => scoreTitle(t, { style })).sort((a, b) => b.score - a.score);
     const avg = scored.reduce((x, r) => x + r.score, 0) / scored.length;
     rows.push({ strategy: s.name, note: s.note, examples: s.examples, avg: Math.round(avg), best: scored[0], all: scored });
   }
   rows.sort((a, b) => b.avg - a.avg);
   return {
-    topic, amount, corpus, corpusLabel: c.label, corpusCount: c.headlines.length,
+    topic, amount, corpus, style, corpusLabel: c.label, corpusCount: c.headlines.length,
     generator: llmEnabled() ? `Anthropic (${process.env.HEADLINE_MODEL || "claude-opus-4-8"})` : "template (on-device)",
     retrievalMode: embedMode(),
     profile, rows, winner: rows[0],
