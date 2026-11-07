@@ -53,7 +53,21 @@ bun run decompose                       # pattern profile across the real outlie
 bun run decompose "your headline here"  # classify one title's components
 bun run lab "small business grant for veterans"
 bun run lab "remote jobs no experience" --amount "$3,200 a week"
+bun run lab "the fall of Lucifer" --corpus faith   # learn from a different niche's outliers
+bun run src/score.js "War in Heaven: Michael vs. Satan" --style faith
 ```
+
+### Corpora (`--corpus`, or the selector in the web demo)
+
+| Key | Seeds | Learned from | Scoring style |
+|---|---|---|---|
+| `mine` | `seeds/rod-squad-outliers.json` | my channel's outliers (grants) | grant |
+| `niche` | `seeds/niche-grants-crosschannel.json` | grant-niche outliers from other creators | grant |
+| `ai` | `seeds/ai-vlog-crosschannel.json` | ~20 AI-vlog channels | ai |
+| `faith` | `seeds/niche-faith-crosschannel.json` | breakout Bible-story titles from other creators | faith |
+| `both` | mine + niche | | grant |
+
+The **faith** style scores a different grammar (named biblical figure, hidden-truth hook, question, second-person stakes, completeness) and applies title rules from Derral Eves's Channel Jumpstart System: keep it under ~55 characters, and avoid the "Topic: Subtitle | Tag" construction, which Eves flags as "a very AI thing to do." Half the faith-niche outliers still use a colon, so treat it as a test, not a ban.
 
 - **Free / on-device by default** — embeddings (dynamic-few-shot retrieval) run locally via transformers.js; generation falls back to template assembly. No API key required.
 - **Optional real generation** — set `ANTHROPIC_API_KEY` and the four strategies generate with Claude, so their quality genuinely diverges (the strategy bake-off becomes a real prompt-technique experiment).
@@ -63,6 +77,7 @@ bun run lab "remote jobs no experience" --amount "$3,200 a week"
 | File | Role |
 |---|---|
 | `seeds/rod-squad-outliers.json` | real outlier headlines (ground truth) |
+| `seeds/niche-*.json`, `seeds/ai-vlog-crosschannel.json` | cross-channel outlier corpora (grants, faith, AI) |
 | `src/decompose.js` | typed-component decomposition + corpus pattern profile |
 | `src/embed.js` | local keyless embeddings → semantic retrieval for dynamic few-shot |
 | `src/score.js` | transparent CTR-proxy scorer (eval signal) |

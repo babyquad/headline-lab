@@ -43,6 +43,7 @@ function home() {
         <option value="ai" selected>train on: AI channels (~20)</option>
         <option value="mine">train on: my channel (grants)</option>
         <option value="niche">train on: grant niche</option>
+        <option value="faith">train on: faith / Bible-story niche</option>
       </select>
       <button>Run bake-off</button><span id="bi" class="htmx-indicator muted">running…</span>
     </form>
@@ -64,7 +65,7 @@ app.get("/", (c) => c.html(home()));
 app.get("/decompose", (c) => {
   const title = (c.req.query("title") || "").trim();
   if (!title) return c.html(`<p class="muted">Enter a headline above.</p>`);
-  return c.html(decomposeResult(decompose(title), scoreTitle(title)));
+  return c.html(decomposeResult(decompose(title), scoreTitle(title, { style: c.req.query("style") || "grant" })));
 });
 
 app.get("/bakeoff", async (c) => {
@@ -79,7 +80,7 @@ app.get("/bakeoff", async (c) => {
 app.get("/api/decompose", (c) => {
   const title = (c.req.query("title") || "").trim();
   if (!title) return c.json({ error: "missing title" }, 400);
-  return c.json({ ...decompose(title), score: scoreTitle(title).score });
+  return c.json({ ...decompose(title), score: scoreTitle(title, { style: c.req.query("style") || "grant" }).score });
 });
 app.get("/api/bakeoff", async (c) => {
   const topic = (c.req.query("topic") || "").trim();
